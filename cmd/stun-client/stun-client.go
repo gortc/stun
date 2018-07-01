@@ -4,40 +4,40 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/gortc/stun"
 )
 
+var (
+	network = flag.String("network", stun.DefaultNet, "Stun network type")
+	server  = flag.String("server", stun.DefaultSTUNServer, "Stun server address")
+	local   = flag.String("local", "", "Local network address")
+)
+
 func main() {
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
-		fmt.Fprintln(os.Stderr, os.Args[0], "stun.l.google.com:19302")
-	}
 	flag.Parse()
-	addr := flag.Arg(0)
-	if len(addr) == 0 {
-		addr = "stun.l.google.com:19302"
-	}
-	c, err := stun.Dial("udp", addr)
+
+	c, err := stun.Dial(*network, *local, *server)
 	if err != nil {
 		log.Fatal("dial:", err)
 	}
+	c.HandleTransactions()
+
+	defer func() {
+		if err := c.Close(); err != nil {
+			log.Fatalln(err)
+		}
+	}()
+
 	deadline := time.Now().Add(time.Second * 5)
-	if err := c.Do(stun.MustBuild(stun.TransactionID, stun.BindingRequest), deadline, func(res stun.Event) {
-		if res.Error != nil {
-			log.Fatalln(err)
-		}
-		var xorAddr stun.XORMappedAddress
-		if err := xorAddr.GetFrom(res.Message); err != nil {
-			log.Fatalln(err)
-		}
-		fmt.Println(xorAddr)
-	}); err != nil {
+	message, err := c.Do(stun.MustBuild(stun.TransactionID, stun.BindingRequest), deadline)
+	if err != nil {
 		log.Fatal("do:", err)
 	}
-	if err := c.Close(); err != nil {
+	var xorAddr stun.XORMappedAddress
+	if err := xorAddr.GetFrom(message); err != nil {
 		log.Fatalln(err)
 	}
+	fmt.Println(xorAddr)
 }
