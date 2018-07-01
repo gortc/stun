@@ -130,6 +130,7 @@ func NewClient(options ...func(*Client) error) (*Client, error) {
 		c.a = NewAgent(AgentOptions{})
 	}
 
+	c.collectUntilClosed()
 	runtime.SetFinalizer(c, clientFinalizer)
 	return c, nil
 }
@@ -227,16 +228,17 @@ func (c CloseErr) Error() string {
 }
 
 // HandleTransactions is a convenience method which
-// starts ReadUntilClosed and CollectUntilClosed
-// and is used to automatically process and garbage collect transactions.
+// starts ReadUntilClosed
+// and is used to automatically process transactions.
 // Non-stun messages are dropped. Alternatively, use ReadFrom to
 // manually process transactions and handle non-stun messages.
 func (c *Client) HandleTransactions() {
 	c.ReadUntilClosed()
-	c.CollectUntilClosed()
+	// TODO: Start automatic retransmission in #39
 }
 
-// ReadUntilClosed is used to automatically process transactions.
+// ReadUntilClosed is a convenience method
+// which automatically processes transactions.
 // Non-stun messages are dropped. Alternatively, use ReadFrom to
 // manually process transactions and handle non-stun messages.
 func (c *Client) ReadUntilClosed() {
@@ -267,30 +269,24 @@ func closedOrPanic(err error) {
 	panic(err)
 }
 
-// CollectUntilClosed is used to atimatically trigger transaction garbage collection.
-// Alternatively, use Collect for manual collection.
-func (c *Client) CollectUntilClosed() {
-	c.wg.Add(1)
-	go c.collectUntilClosed()
-}
-
 func (c *Client) collectUntilClosed() {
-	defer c.wg.Done()
-	t := time.NewTicker(c.gcRate)
-	for {
-		select {
-		case <-c.close:
-			t.Stop()
-			return
-		case gcTime := <-t.C:
-			closedOrPanic(c.Collect(gcTime))
+	c.wg.Add(1)
+	go func() {
+		defer c.wg.Done()
+		t := time.NewTicker(c.gcRate)
+		for {
+			select {
+			case <-c.close:
+				t.Stop()
+				return
+			case gcTime := <-t.C:
+				closedOrPanic(c.collect(gcTime))
+			}
 		}
-	}
+	}()
 }
 
-// Collect is used to manually trigger transaction collection.
-// Alternatively, use CollectUntilClosed for automated collection.
-func (c *Client) Collect(gcTime time.Time) error {
+func (c *Client) collect(gcTime time.Time) error {
 	return c.a.Collect(gcTime)
 }
 

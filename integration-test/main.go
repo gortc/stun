@@ -33,6 +33,9 @@ func main() {
 	if err != nil {
 		log.Fatalln("failed to dial:", err)
 	}
+
+	client.HandleTransactions()
+
 	laddr := client.LocalAddr()
 	fmt.Println("LISTEN ON", laddr)
 

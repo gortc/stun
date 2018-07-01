@@ -39,7 +39,6 @@ func main() {
 
 	// Start listening to start transaction handling
 	messageChan := readUntilClosed(c)
-	c.CollectUntilClosed()
 
 	err = getPubAddr(c)
 	if err != nil {
