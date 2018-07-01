@@ -33,6 +33,9 @@ var (
 // Dial creates a stun connection to a STUN server
 // using the supplied options.
 func Dial(network, localaddress, stunserveraddress string, options ...func(*Client) error) (*Client, error) {
+	if network == "" {
+		network = DefaultNet
+	}
 	if stunserveraddress == "" {
 		stunserveraddress = DefaultSTUNServer
 	}
