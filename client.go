@@ -314,10 +314,16 @@ func (c *Client) Close() error {
 	}
 }
 
-// Indicate sends indication m to server. Shorthand to Start call
+// Indicate sends indication m the stun server. Shorthand to Start call
 // with zero deadline and callback.
 func (c *Client) Indicate(m *Message) error {
 	return c.Start(m, time.Time{}, nil)
+}
+
+// IndicateTo sends indication m to a peer. Shorthand to StartTo call
+// with zero deadline and callback.
+func (c *Client) IndicateTo(m *Message, raddr net.Addr) error {
+	return c.StartTo(m, raddr, time.Time{}, nil)
 }
 
 // callbackWaitHandler blocks on wait() call until callback is called.
