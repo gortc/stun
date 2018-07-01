@@ -57,12 +57,28 @@ func main() {
 	if err = response.Parse(&xorMapped); err != nil {
 		log.Fatalln("failed to parse xor mapped address:", err)
 	}
-	if laddr.String() != xorMapped.String() {
+	lport, err := getPort(laddr)
+	if err != nil {
+		log.Fatalln("get port:", laddr)
+	}
+	if lport != xorMapped.Port {
 		log.Fatalln(laddr, "!=", xorMapped)
 	}
 	fmt.Println("OK", response, "GOT", xorMapped)
 
 	if err := client.Close(); err != nil {
 		log.Fatalln("failed to close client:", err)
+	}
+}
+
+// Get the port of a net.Addr
+func getPort(addr net.Addr) (int, error) {
+	switch a := addr.(type) {
+	case *net.UDPAddr:
+		return a.Port, nil
+	case *net.TCPAddr:
+		return a.Port, nil
+	default:
+		return -1, stun.ErrNet
 	}
 }
