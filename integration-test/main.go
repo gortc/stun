@@ -11,13 +11,14 @@ import (
 
 func main() {
 	var (
-		addr *net.UDPAddr
-		err  error
+		err error
 	)
+
+	serverAddr := fmt.Sprintf("stun-server:%d", stun.DefaultPort)
 
 	fmt.Println("START")
 	for i := 0; i < 10; i++ {
-		addr, err = net.ResolveUDPAddr("udp", fmt.Sprintf("stun-server:%d", stun.DefaultPort))
+		_, err = net.ResolveUDPAddr("udp", serverAddr)
 		if err == nil {
 			break
 		}
@@ -27,18 +28,12 @@ func main() {
 		log.Fatalln("too many attempts to resolve:", err)
 	}
 
-	fmt.Println("DIALING", addr)
-	conn, err := net.DialUDP("udp", nil, addr)
+	fmt.Println("DIALING", serverAddr)
+	client, err := stun.Dial("", "", serverAddr)
 	if err != nil {
 		log.Fatalln("failed to dial:", err)
 	}
-	client, err := stun.NewClient(stun.ClientOptions{
-		Connection: conn,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-	laddr := conn.LocalAddr()
+	laddr := client.LocalAddr()
 	fmt.Println("LISTEN ON", laddr)
 
 	request, err := stun.Build(stun.BindingRequest, stun.TransactionID)
@@ -47,25 +42,23 @@ func main() {
 	}
 	timeout := time.Second
 	deadline := time.Now().Add(timeout)
-	if err := client.Do(request, deadline, func(event stun.Event) {
-		if event.Error != nil {
-			log.Fatalln("got event with error:", event.Error)
-		}
-		response := event.Message
-		if response.Type != stun.BindingSuccess {
-			log.Fatalln("bad message", response)
-		}
-		var xorMapped stun.XORMappedAddress
-		if err = response.Parse(&xorMapped); err != nil {
-			log.Fatalln("failed to parse xor mapped address:", err)
-		}
-		if laddr.String() != xorMapped.String() {
-			log.Fatalln(laddr, "!=", xorMapped)
-		}
-		fmt.Println("OK", response, "GOT", xorMapped)
-	}); err != nil {
+
+	response, err := client.Do(request, deadline)
+	if err != nil {
 		log.Fatalln("failed to Do:", err)
 	}
+	if response.Type != stun.BindingSuccess {
+		log.Fatalln("bad message", response)
+	}
+	var xorMapped stun.XORMappedAddress
+	if err = response.Parse(&xorMapped); err != nil {
+		log.Fatalln("failed to parse xor mapped address:", err)
+	}
+	if laddr.String() != xorMapped.String() {
+		log.Fatalln(laddr, "!=", xorMapped)
+	}
+	fmt.Println("OK", response, "GOT", xorMapped)
+
 	if err := client.Close(); err != nil {
 		log.Fatalln("failed to close client:", err)
 	}
