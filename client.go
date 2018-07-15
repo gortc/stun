@@ -3,7 +3,6 @@ package stun
 import (
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"runtime"
@@ -11,55 +10,167 @@ import (
 	"time"
 )
 
-// Dial connects to the address on the named network and then
-// initializes Client on that connection, returning error if any.
-func Dial(network, address string) (*Client, error) {
-	conn, err := net.Dial(network, address)
-	if err != nil {
-		return nil, err
+const (
+	defaultTimeoutRate = time.Millisecond * 100
+	netUDP             = "udp"
+	netUDP4            = "udp4"
+	netUDP6            = "udp6"
+	DefaultNet         = "udp"
+	DefaultSTUNServer  = "gortc.io:3478"
+)
+
+var (
+	// ErrNoConnection means that ClientOptions.Connection is nil.
+	ErrNoConnection = errors.New("no connection provided")
+	// ErrConnection means that the client already has a connection set
+	ErrConnection = errors.New("connection already provided")
+	// ErrNet means the network type is not supported
+	ErrNet = errors.New("network type not supported")
+	// ErrClientClosed indicates that client is closed.
+	ErrClientClosed = errors.New("client is closed")
+)
+
+// Dial creates a stun connection to a STUN server
+// using the supplied options.
+func Dial(network, localaddress, stunserveraddress string, options ...func(*Client) error) (*Client, error) {
+	if network == "" {
+		network = DefaultNet
 	}
-	return NewClient(ClientOptions{
-		Connection: conn,
-	})
+	if stunserveraddress == "" {
+		stunserveraddress = DefaultSTUNServer
+	}
+	var laddr net.Addr
+	var err error
+	if localaddress != "" {
+		laddr, err = ResolveAddr(network, localaddress)
+		if err != nil {
+			return nil, fmt.Errorf("localaddr: %v", err)
+		}
+	}
+	raddr, err := ResolveAddr(network, stunserveraddress)
+	if err != nil {
+		return nil, fmt.Errorf("stunserveraddress: %v", err)
+	}
+	conn, err := listen(network, laddr)
+	if err != nil {
+		return nil, fmt.Errorf("listen: %v", err)
+	}
+
+	options = append(options, WithPacketConn(conn))
+	options = append(options, WithSTUNServer(raddr))
+
+	return NewClient(options...)
 }
 
-// ClientOptions are used to initialize Client.
-type ClientOptions struct {
-	Agent       ClientAgent
-	Connection  Connection
-	TimeoutRate time.Duration // defaults to 100 ms
+// ResolveAddr returns an address.
+func ResolveAddr(network, address string) (net.Addr, error) {
+	if network == "" {
+		network = DefaultNet
+	}
+
+	switch network {
+	case netUDP, netUDP4, netUDP6:
+		return net.ResolveUDPAddr(network, address)
+	default:
+		return nil, ErrNet
+	}
 }
 
-const defaultTimeoutRate = time.Millisecond * 100
+func listen(network string, laddr net.Addr) (PacketConn, error) {
+	switch network {
+	case netUDP, netUDP4, netUDP6:
+		var addr *net.UDPAddr
+		if laddr != nil {
+			addr = laddr.(*net.UDPAddr)
+		}
+		return net.ListenUDP(network, addr)
+	default:
+		return nil, ErrNet
+	}
+}
 
-// ErrNoConnection means that ClientOptions.Connection is nil.
-var ErrNoConnection = errors.New("no connection provided")
+// PacketConn represents a subset of net.PacketConn.
+type PacketConn interface {
+	ReadFrom(b []byte) (n int, addr net.Addr, err error)
+	WriteTo(b []byte, addr net.Addr) (n int, err error)
+	Close() error
+	LocalAddr() net.Addr
+}
 
-// NewClient initializes new Client from provided options,
-// starting internal goroutines and using default options fields
-// if necessary. Call Close method after using Client to release
-// resources.
-func NewClient(options ClientOptions) (*Client, error) {
+// Client simulates "connection" to STUN server.
+// The caller should either continuously call ReadFrom or
+// use ReadUntilClosed to keep transaction processing active.
+type Client struct {
+	a          ClientAgent
+	c          PacketConn
+	serveraddr net.Addr
+	close      chan struct{}
+	gcRate     time.Duration
+	closed     bool
+	closedMux  sync.RWMutex
+	wg         sync.WaitGroup
+}
+
+// Client itself implements the PacketConn interface
+var _ PacketConn = (*Client)(nil)
+
+// NewClient initializes new Client manually from provided options.
+// Usage of Dial is preffered for most applications.
+func NewClient(options ...func(*Client) error) (*Client, error) {
 	c := &Client{
 		close:  make(chan struct{}),
-		c:      options.Connection,
-		a:      options.Agent,
-		gcRate: options.TimeoutRate,
+		gcRate: defaultTimeoutRate,
 	}
+
+	for _, option := range options {
+		option(c)
+	}
+
 	if c.c == nil {
 		return nil, ErrNoConnection
 	}
 	if c.a == nil {
 		c.a = NewAgent(AgentOptions{})
 	}
-	if c.gcRate == 0 {
-		c.gcRate = defaultTimeoutRate
-	}
-	c.wg.Add(2)
-	go c.readUntilClosed()
-	go c.collectUntilClosed()
+
+	c.collectUntilClosed()
 	runtime.SetFinalizer(c, clientFinalizer)
 	return c, nil
+}
+
+// WithTimeoutRate allows the default timeout rate of 100ms to be overwritten.
+func WithTimeoutRate(d time.Duration) func(*Client) error {
+	return func(c *Client) error {
+		c.gcRate = d
+		return nil
+	}
+}
+
+// WithAgent allows overwriting the default stun.ClientAgent.
+func WithAgent(a ClientAgent) func(*Client) error {
+	return func(c *Client) error {
+		c.a = a
+		return nil
+	}
+}
+
+// WithPacketConn
+func WithPacketConn(conn PacketConn) func(*Client) error {
+	return func(c *Client) error {
+		if c.c != nil {
+			return ErrConnection
+		}
+		c.c = conn
+		return nil
+	}
+}
+
+// WithSTUNServer
+func WithSTUNServer(addr net.Addr) func(*Client) error {
+	return func(c *Client) error {
+		c.serveraddr = addr
+		return nil
+	}
 }
 
 func clientFinalizer(c *Client) {
@@ -77,13 +188,6 @@ func clientFinalizer(c *Client) {
 	log.Println("client: called finalizer on non-closed client:", err)
 }
 
-// Connection wraps Reader, Writer and Closer interfaces.
-type Connection interface {
-	io.Reader
-	io.Writer
-	io.Closer
-}
-
 // ClientAgent is Agent implementation that is used by Client to
 // process transactions.
 type ClientAgent interface {
@@ -92,17 +196,6 @@ type ClientAgent interface {
 	Start(id [TransactionIDSize]byte, deadline time.Time, f Handler) error
 	Stop(id [TransactionIDSize]byte) error
 	Collect(time.Time) error
-}
-
-// Client simulates "connection" to STUN server.
-type Client struct {
-	a         ClientAgent
-	c         Connection
-	close     chan struct{}
-	gcRate    time.Duration
-	closed    bool
-	closedMux sync.RWMutex
-	wg        sync.WaitGroup
 }
 
 // StopErr occurs when Client fails to stop transaction while
@@ -137,21 +230,37 @@ func (c CloseErr) Error() string {
 	)
 }
 
+// HandleTransactions is a convenience method which
+// starts ReadUntilClosed
+// and is used to automatically process transactions.
+// Non-stun messages are dropped. Alternatively, use ReadFrom to
+// manually process transactions and handle non-stun messages.
+func (c *Client) HandleTransactions() {
+	c.ReadUntilClosed()
+	// TODO: Start automatic retransmission in #39
+}
+
+// ReadUntilClosed is a convenience method
+// which automatically processes transactions.
+// Non-stun messages are dropped. Alternatively, use ReadFrom to
+// manually process transactions and handle non-stun messages.
+func (c *Client) ReadUntilClosed() {
+	c.wg.Add(1)
+	go c.readUntilClosed()
+}
+
 func (c *Client) readUntilClosed() {
 	defer c.wg.Done()
-	m := new(Message)
-	m.Raw = make([]byte, 1024)
+	buf := make([]byte, 1024)
 	for {
 		select {
 		case <-c.close:
 			return
 		default:
 		}
-		_, err := m.ReadFrom(c.c)
-		if err == nil {
-			if pErr := c.a.Process(m); pErr == ErrAgentClosed {
-				return
-			}
+		_, _, err := c.ReadFrom(buf)
+		if err == ErrAgentClosed {
+			return
 		}
 	}
 }
@@ -164,21 +273,25 @@ func closedOrPanic(err error) {
 }
 
 func (c *Client) collectUntilClosed() {
-	t := time.NewTicker(c.gcRate)
-	defer c.wg.Done()
-	for {
-		select {
-		case <-c.close:
-			t.Stop()
-			return
-		case gcTime := <-t.C:
-			closedOrPanic(c.a.Collect(gcTime))
+	c.wg.Add(1)
+	go func() {
+		defer c.wg.Done()
+		t := time.NewTicker(c.gcRate)
+		for {
+			select {
+			case <-c.close:
+				t.Stop()
+				return
+			case gcTime := <-t.C:
+				closedOrPanic(c.collect(gcTime))
+			}
 		}
-	}
+	}()
 }
 
-// ErrClientClosed indicates that client is closed.
-var ErrClientClosed = errors.New("client is closed")
+func (c *Client) collect(gcTime time.Time) error {
+	return c.a.Collect(gcTime)
+}
 
 // Close stops internal connection and agent, returning CloseErr on error.
 func (c *Client) Close() error {
@@ -204,10 +317,16 @@ func (c *Client) Close() error {
 	}
 }
 
-// Indicate sends indication m to server. Shorthand to Start call
+// Indicate sends indication m the stun server. Shorthand to Start call
 // with zero deadline and callback.
 func (c *Client) Indicate(m *Message) error {
 	return c.Start(m, time.Time{}, nil)
+}
+
+// IndicateTo sends indication m to a peer. Shorthand to StartTo call
+// with zero deadline and callback.
+func (c *Client) IndicateTo(m *Message, raddr net.Addr) error {
+	return c.StartTo(m, raddr, time.Time{}, nil)
 }
 
 // callbackWaitHandler blocks on wait() call until callback is called.
@@ -266,34 +385,15 @@ func (c *Client) checkInit() error {
 	return nil
 }
 
-// Do is Start wrapper that waits until callback is called. If no callback
-// provided, Indicate is called instead.
-//
-// Do has cpu overhead due to blocking, see BenchmarkClient_Do.
-// Use Start method for less overhead.
-func (c *Client) Do(m *Message, d time.Time, f func(Event)) error {
-	if err := c.checkInit(); err != nil {
-		return err
-	}
-	if f == nil {
-		return c.Indicate(m)
-	}
-	h := callbackWaitHandlerPool.Get().(*callbackWaitHandler)
-	h.setCallback(f)
-	defer func() {
-		h.reset()
-		callbackWaitHandlerPool.Put(h)
-	}()
-	if err := c.Start(m, d, h); err != nil {
-		return err
-	}
-	h.wait()
-	return nil
-}
-
-// Start starts transaction (if f set) and writes message to server, handler
+// Start starts transaction (if h set) and writes message to server, handler
 // is called asynchronously.
 func (c *Client) Start(m *Message, d time.Time, h Handler) error {
+	return c.StartTo(m, c.serveraddr, d, h)
+}
+
+// StartTo starts transaction (if h set) and writes message to a specific peer, handler
+// is called asynchronously.
+func (c *Client) StartTo(m *Message, raddr net.Addr, d time.Time, h Handler) error {
 	if err := c.checkInit(); err != nil {
 		return err
 	}
@@ -309,7 +409,7 @@ func (c *Client) Start(m *Message, d time.Time, h Handler) error {
 			return err
 		}
 	}
-	_, err := m.WriteTo(c.c)
+	_, err := c.c.WriteTo(m.Raw, raddr)
 	if err != nil && h != nil {
 		// Stopping transaction instead of waiting until deadline.
 		if stopErr := c.a.Stop(m.TransactionID); stopErr != nil {
@@ -320,4 +420,74 @@ func (c *Client) Start(m *Message, d time.Time, h Handler) error {
 		}
 	}
 	return err
+}
+
+// Do is Start wrapper that waits until callback is called. If no callback
+// provided, Indicate is called instead.
+//
+// Do has cpu overhead due to blocking, see BenchmarkClient_Do.
+// Use Start method for less overhead.
+func (c *Client) Do(m *Message, d time.Time) (*Message, error) {
+	return c.DoTo(m, c.serveraddr, d)
+}
+
+// DoTo is StartTo wrapper that waits until callback is called. If no callback
+// provided, Indicate is called instead.
+//
+// Do has cpu overhead due to blocking, see BenchmarkClient_Do.
+// Use Start method for less overhead.
+func (c *Client) DoTo(m *Message, raddr net.Addr, d time.Time) (*Message, error) {
+	if err := c.checkInit(); err != nil {
+		return nil, err
+	}
+	h := callbackWaitHandlerPool.Get().(*callbackWaitHandler)
+	var eventErr error
+	var message *Message
+	h.setCallback(func(event Event) {
+		eventErr = event.Error
+		message = event.Message
+	})
+	defer func() {
+		h.reset()
+		callbackWaitHandlerPool.Put(h)
+	}()
+	if err := c.StartTo(m, raddr, d, h); err != nil {
+		return nil, err
+	}
+	h.wait()
+	return message, eventErr
+}
+
+// ReadFrom is used to keep transaction processing aliv and
+// receive non-stun messages over the connection. Alternatively,
+// See ReadUntilClosed for automated transaction processing.
+func (c *Client) ReadFrom(b []byte) (n int, addr net.Addr, err error) {
+	for {
+		n, addr, err = c.c.ReadFrom(b)
+		if err != nil {
+			return
+		}
+		if !IsMessage(b[:n]) {
+			return
+		}
+		m := new(Message)
+		m.Raw = b[:n]
+		if m.Decode() != nil {
+			return // The caller may be able to handle the packet
+		}
+		err = c.a.Process(m)
+		if err != nil {
+			return
+		}
+	}
+}
+
+// WriteTo is used to write a message over the connection to the remote peer
+func (c *Client) WriteTo(b []byte, addr net.Addr) (int, error) {
+	return c.c.WriteTo(b, addr)
+}
+
+// LocalAddr returns the local network address.
+func (c *Client) LocalAddr() net.Addr {
+	return c.c.LocalAddr()
 }

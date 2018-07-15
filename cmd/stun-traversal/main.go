@@ -14,40 +14,41 @@ import (
 )
 
 var (
-	server = flag.String("server", fmt.Sprintf("gortc.io:3478"), "Stun server address")
+	network = flag.String("network", stun.DefaultNet, "Stun network type")
+	server  = flag.String("server", stun.DefaultSTUNServer, "Stun server address")
+	local   = flag.String("local", "", "Local network address")
 )
 
 const (
-	udp           = "udp4"
-	pingMsg       = "ping"
-	pongMsg       = "pong"
-	timeoutMillis = 500
+	pingMsg         = "ping"
+	pongMsg         = "pong"
+	keepaliveMillis = 500
 )
 
 func main() {
 	flag.Parse()
 
-	srvAddr, err := net.ResolveUDPAddr(udp, *server)
-	if err != nil {
-		log.Fatalln("resolve serveraddr:", err)
-	}
-
-	conn, err := net.ListenUDP(udp, nil)
+	c, err := stun.Dial(*network, *local, *server)
 	if err != nil {
 		log.Fatalln("dial:", err)
 	}
 
-	defer conn.Close()
+	defer c.Close()
 
-	log.Printf("Listening on %s\n", conn.LocalAddr())
+	log.Printf("Listening on %s\n", c.LocalAddr())
 
-	var publicAddr stun.XORMappedAddress
-	var peerAddr *net.UDPAddr
+	// Start listening to start transaction handling
+	messageChan := readUntilClosed(c)
 
-	messageChan := listen(conn)
-	var peerAddrChan <-chan string
+	err = getPubAddr(c)
+	if err != nil {
+		log.Fatalln("get pub addr:", err)
+	}
 
-	keepalive := time.Tick(timeoutMillis * time.Millisecond)
+	var peerAddr net.Addr
+	peerAddrChan := getPeerAddr()
+
+	keepalive := time.Tick(keepaliveMillis * time.Millisecond)
 	keepaliveMsg := pingMsg
 
 	var quit <-chan time.Time
@@ -77,43 +78,19 @@ func main() {
 
 				gotPong = true
 
-			case stun.IsMessage(message):
-				m := new(stun.Message)
-				m.Raw = message
-				err := m.Decode()
-				if err != nil {
-					log.Println("decode:", err)
-					break
-				}
-				var xorAddr stun.XORMappedAddress
-				if err := xorAddr.GetFrom(m); err != nil {
-					log.Println("getFrom:", err)
-					break
-				}
-
-				if publicAddr.String() != xorAddr.String() {
-					log.Printf("My public address: %s\n", xorAddr)
-					publicAddr = xorAddr
-
-					peerAddrChan = getPeerAddr()
-				}
-
 			default:
 				log.Fatalln("unknown message", message)
 			}
 
-		case peerStr := <-peerAddrChan:
-			peerAddr, err = net.ResolveUDPAddr(udp, peerStr)
-			if err != nil {
-				log.Fatalln("resolve peeraddr:", err)
-			}
+		case addr := <-peerAddrChan:
+			peerAddr = addr
 
 		case <-keepalive:
 			// Keep NAT binding alive using STUN server or the peer once it's known
 			if peerAddr == nil {
-				err = sendBindingRequest(conn, srvAddr)
+				err = c.Indicate(stun.MustBuild(stun.TransactionID, stun.BindingRequest))
 			} else {
-				err = sendStr(keepaliveMsg, conn, peerAddr)
+				_, err = c.WriteTo([]byte(keepaliveMsg), peerAddr)
 				if keepaliveMsg == pongMsg {
 					sentPong = true
 				}
@@ -124,7 +101,7 @@ func main() {
 			}
 
 		case <-quit:
-			conn.Close()
+			c.Close()
 		}
 
 		if quit == nil && gotPong && sentPong {
@@ -134,58 +111,57 @@ func main() {
 	}
 }
 
-func getPeerAddr() <-chan string {
-	result := make(chan string)
+func getPubAddr(c *stun.Client) error {
+	deadline := time.Now().Add(time.Second * 5)
+	message, err := c.Do(stun.MustBuild(stun.TransactionID, stun.BindingRequest), deadline)
+	if err != nil {
+		return fmt.Errorf("do: %v", err)
+	}
+	var publicAddr stun.XORMappedAddress
+	if err := publicAddr.GetFrom(message); err != nil {
+		return fmt.Errorf("get from: %v", err)
+	}
+
+	log.Printf("My public address: %s\n", publicAddr)
+
+	return nil
+}
+
+func getPeerAddr() <-chan net.Addr {
+	result := make(chan net.Addr)
 
 	go func() {
 		reader := bufio.NewReader(os.Stdin)
 		log.Println("Enter remote peer address:")
-		peer, _ := reader.ReadString('\n')
-		result <- strings.Trim(peer, " \r\n")
+		for {
+			peer, _ := reader.ReadString('\n')
+			addr, err := stun.ResolveAddr(*network, strings.Trim(peer, " \r\n"))
+			if err != nil {
+				log.Println("Invalid address:", err)
+				continue
+			}
+			result <- addr
+			return
+		}
 	}()
 
 	return result
 }
 
-func listen(conn *net.UDPConn) <-chan []byte {
+func readUntilClosed(conn stun.PacketConn) <-chan []byte {
 	messages := make(chan []byte)
 	go func() {
 		for {
 			buf := make([]byte, 1024)
 
-			n, _, err := conn.ReadFromUDP(buf)
+			n, _, err := conn.ReadFrom(buf)
 			if err != nil {
 				close(messages)
 				return
 			}
-			buf = buf[:n]
 
-			messages <- buf
+			messages <- buf[:n]
 		}
 	}()
 	return messages
-}
-
-func sendBindingRequest(conn *net.UDPConn, addr *net.UDPAddr) error {
-	m := stun.MustBuild(stun.TransactionID, stun.BindingRequest)
-
-	err := send(m.Raw, conn, addr)
-	if err != nil {
-		return fmt.Errorf("binding: %v", err)
-	}
-
-	return nil
-}
-
-func send(msg []byte, conn *net.UDPConn, addr *net.UDPAddr) error {
-	_, err := conn.WriteToUDP(msg, addr)
-	if err != nil {
-		return fmt.Errorf("send: %v", err)
-	}
-
-	return nil
-}
-
-func sendStr(msg string, conn *net.UDPConn, addr *net.UDPAddr) error {
-	return send([]byte(msg), conn, addr)
 }

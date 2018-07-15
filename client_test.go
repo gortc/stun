@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"log"
+	"net"
 	"os"
 	"testing"
 	"time"
@@ -35,16 +36,20 @@ func (n *TestAgent) Stop([TransactionIDSize]byte) error {
 
 type noopConnection struct{}
 
-func (noopConnection) Write(b []byte) (int, error) {
+func (noopConnection) WriteTo(b []byte, addr net.Addr) (int, error) {
 	return len(b), nil
 }
 
-func (noopConnection) Read(b []byte) (int, error) {
+func (noopConnection) ReadFrom(b []byte) (int, net.Addr, error) {
 	time.Sleep(time.Millisecond)
-	return 0, io.EOF
+	return 0, nil, io.EOF
 }
 
 func (noopConnection) Close() error {
+	return nil
+}
+
+func (noopConnection) LocalAddr() net.Addr {
 	return nil
 }
 
@@ -53,13 +58,14 @@ func BenchmarkClient_Do(b *testing.B) {
 	agent := &TestAgent{
 		f: make(chan Handler, 1000),
 	}
-	client, err := NewClient(ClientOptions{
-		Agent:      agent,
-		Connection: noopConnection{},
-	})
+	client, err := NewClient(
+		WithAgent(agent),
+		WithPacketConn(noopConnection{}),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
+	client.HandleTransactions()
 	defer client.Close()
 	go func() {
 		e := Event{
@@ -72,24 +78,21 @@ func BenchmarkClient_Do(b *testing.B) {
 	}()
 	m := new(Message)
 	m.Encode()
-	noopF := func(event Event) {
-		// pass
-	}
 	for i := 0; i < b.N; i++ {
-		if err := client.Do(m, time.Time{}, noopF); err != nil {
+		if _, err := client.Do(m, time.Time{}); err != nil {
 			b.Fatal(err)
 		}
 	}
 }
 
 type testConnection struct {
-	write   func([]byte) (int, error)
+	writeTo func([]byte, net.Addr) (int, error)
 	b       []byte
 	stopped bool
 }
 
-func (t *testConnection) Write(b []byte) (int, error) {
-	return t.write(b)
+func (t *testConnection) WriteTo(b []byte, addr net.Addr) (int, error) {
+	return t.writeTo(b, addr)
 }
 
 func (t *testConnection) Close() error {
@@ -100,11 +103,15 @@ func (t *testConnection) Close() error {
 	return nil
 }
 
-func (t *testConnection) Read(b []byte) (int, error) {
+func (t *testConnection) ReadFrom(b []byte) (int, net.Addr, error) {
 	if t.stopped {
-		return 0, io.EOF
+		return 0, nil, io.EOF
 	}
-	return copy(b, t.b), nil
+	return copy(b, t.b), nil, nil
+}
+
+func (t *testConnection) LocalAddr() net.Addr {
+	return nil
 }
 
 func TestClosedOrPanic(t *testing.T) {
@@ -126,16 +133,17 @@ func TestClient_Do(t *testing.T) {
 	response.Encode()
 	conn := &testConnection{
 		b: response.Raw,
-		write: func(bytes []byte) (int, error) {
+		writeTo: func(bytes []byte, addr net.Addr) (int, error) {
 			return len(bytes), nil
 		},
 	}
-	c, err := NewClient(ClientOptions{
-		Connection: conn,
-	})
+	c, err := NewClient(
+		WithPacketConn(conn),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
+	c.HandleTransactions()
 	defer func() {
 		if err := c.Close(); err != nil {
 			t.Error(err)
@@ -143,7 +151,7 @@ func TestClient_Do(t *testing.T) {
 		if err := c.Close(); err == nil {
 			t.Error("second close should fail")
 		}
-		if err := c.Do(MustBuild(TransactionID), time.Time{}, nil); err == nil {
+		if _, err := c.Do(MustBuild(TransactionID), time.Time{}); err == nil {
 			t.Error("Do after Close should fail")
 		}
 	}()
@@ -151,15 +159,11 @@ func TestClient_Do(t *testing.T) {
 		NewTransactionIDSetter(response.TransactionID),
 	)
 	d := time.Now().Add(time.Second)
-	if err := c.Do(m, d, func(event Event) {
-		if event.Error != nil {
-			t.Error(event.Error)
-		}
-	}); err != nil {
+	if _, err := c.Do(m, d); err != nil {
 		t.Error(err)
 	}
 	m = MustBuild(TransactionID)
-	if err := c.Do(m, d, nil); err != nil {
+	if _, err := c.Do(m, d); err != ErrTransactionTimeOut {
 		t.Error(err)
 	}
 }
@@ -231,85 +235,74 @@ func TestClientAgentError(t *testing.T) {
 	response.Encode()
 	conn := &testConnection{
 		b: response.Raw,
-		write: func(bytes []byte) (int, error) {
+		writeTo: func(bytes []byte, addr net.Addr) (int, error) {
 			return len(bytes), nil
 		},
 	}
-	c, err := NewClient(ClientOptions{
-		Agent: errorAgent{
-			startErr: io.ErrUnexpectedEOF,
-		},
-		Connection: conn,
-	})
+	c, err := NewClient(
+		WithAgent(errorAgent{startErr: io.ErrUnexpectedEOF}),
+		WithPacketConn(conn),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
+	c.HandleTransactions()
 	defer func() {
 		if err := c.Close(); err != nil {
 			t.Error(err)
 		}
 	}()
 	m := MustBuild(NewTransactionIDSetter(response.TransactionID))
-	if err := c.Do(m, time.Time{}, nil); err != nil {
-		t.Error(err)
-	}
-	if err := c.Do(m, time.Time{}, func(event Event) {
-		if event.Error == nil {
-			t.Error("error expected")
-		}
-	}); err != io.ErrUnexpectedEOF {
+	if _, err := c.Do(m, time.Time{}); err != io.ErrUnexpectedEOF {
 		t.Error("error expected")
 	}
 }
 
 func TestClientConnErr(t *testing.T) {
 	conn := &testConnection{
-		write: func(bytes []byte) (int, error) {
+		writeTo: func(bytes []byte, addr net.Addr) (int, error) {
 			return 0, io.ErrClosedPipe
 		},
 	}
-	c, err := NewClient(ClientOptions{
-		Connection: conn,
-	})
+	c, err := NewClient(
+		WithPacketConn(conn),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
+	c.HandleTransactions()
 	defer func() {
 		if err := c.Close(); err != nil {
 			t.Error(err)
 		}
 	}()
 	m := MustBuild(TransactionID)
-	if err := c.Do(m, time.Time{}, nil); err == nil {
-		t.Error("error expected")
-	}
-	if err := c.Do(m, time.Time{}, noopHandler); err == nil {
+	if _, err := c.Do(m, time.Time{}); err == nil {
 		t.Error("error expected")
 	}
 }
 
 func TestClientConnErrStopErr(t *testing.T) {
 	conn := &testConnection{
-		write: func(bytes []byte) (int, error) {
+		writeTo: func(bytes []byte, addr net.Addr) (int, error) {
 			return 0, io.ErrClosedPipe
 		},
 	}
-	c, err := NewClient(ClientOptions{
-		Connection: conn,
-		Agent: errorAgent{
-			stopErr: io.ErrUnexpectedEOF,
-		},
-	})
+	c, err := NewClient(
+		WithAgent(errorAgent{stopErr: io.ErrUnexpectedEOF}),
+		WithPacketConn(conn),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
+	c.HandleTransactions()
 	defer func() {
 		if err := c.Close(); err != nil {
 			t.Error(err)
 		}
 	}()
 	m := MustBuild(TransactionID)
-	if err := c.Do(m, time.Time{}, noopHandler); err == nil {
+	if _, err := c.Do(m, time.Time{}); err == nil {
 		t.Error("error expected")
 	}
 }
@@ -335,9 +328,7 @@ func TestCallbackWaitHandler_HandleEvent(t *testing.T) {
 }
 
 func TestNewClientNoConnection(t *testing.T) {
-	c, err := NewClient(ClientOptions{
-		Connection: nil,
-	})
+	c, err := NewClient()
 	if c != nil {
 		t.Error("c should be nil")
 	}
@@ -347,10 +338,11 @@ func TestNewClientNoConnection(t *testing.T) {
 }
 
 func TestDial(t *testing.T) {
-	c, err := Dial("udp4", "localhost:0")
+	c, err := Dial("udp4", "", "localhost:0")
 	if err != nil {
 		t.Fatal(err)
 	}
+	c.HandleTransactions()
 	defer func() {
 		if err = c.Close(); err != nil {
 			t.Error(err)
@@ -359,7 +351,7 @@ func TestDial(t *testing.T) {
 }
 
 func TestDialError(t *testing.T) {
-	_, err := Dial("bad?network", "?????")
+	_, err := Dial("bad?network", "", "?????")
 	if err == nil {
 		t.Fatal("error expected")
 	}
@@ -369,19 +361,18 @@ func TestClientCloseErr(t *testing.T) {
 	response.Encode()
 	conn := &testConnection{
 		b: response.Raw,
-		write: func(bytes []byte) (int, error) {
+		writeTo: func(bytes []byte, addr net.Addr) (int, error) {
 			return len(bytes), nil
 		},
 	}
-	c, err := NewClient(ClientOptions{
-		Agent: errorAgent{
-			closeErr: io.ErrUnexpectedEOF,
-		},
-		Connection: conn,
-	})
+	c, err := NewClient(
+		WithAgent(errorAgent{closeErr: io.ErrUnexpectedEOF}),
+		WithPacketConn(conn),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
+	c.HandleTransactions()
 	defer func() {
 		if err, ok := c.Close().(CloseErr); !ok || err.AgentErr != io.ErrUnexpectedEOF {
 			t.Error("unexpected close err")
@@ -420,21 +411,22 @@ func TestClientGC(t *testing.T) {
 	response.Encode()
 	conn := &testConnection{
 		b: response.Raw,
-		write: func(bytes []byte) (int, error) {
+		writeTo: func(bytes []byte, addr net.Addr) (int, error) {
 			return len(bytes), nil
 		},
 	}
 	agent := &gcWaitAgent{
 		gc: make(chan struct{}),
 	}
-	c, err := NewClient(ClientOptions{
-		Agent:       agent,
-		Connection:  conn,
-		TimeoutRate: time.Millisecond * 1,
-	})
+	c, err := NewClient(
+		WithAgent(agent),
+		WithPacketConn(conn),
+		WithTimeoutRate(time.Millisecond*1),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
+	c.HandleTransactions()
 	defer func() {
 		if err = c.Close(); err != nil {
 			t.Error(err)
@@ -451,7 +443,7 @@ func TestClientCheckInit(t *testing.T) {
 	if err := (&Client{}).Indicate(nil); err != ErrClientNotInitialized {
 		t.Error("unexpected error")
 	}
-	if err := (&Client{}).Do(nil, time.Time{}, nil); err != ErrClientNotInitialized {
+	if _, err := (&Client{}).Do(nil, time.Time{}); err != ErrClientNotInitialized {
 		t.Error("unexpected error")
 	}
 }
@@ -473,35 +465,35 @@ func TestClientFinalizer(t *testing.T) {
 	clientFinalizer(nil) // should not panic
 	clientFinalizer(&Client{})
 	conn := &testConnection{
-		write: func(bytes []byte) (int, error) {
+		writeTo: func(bytes []byte, addr net.Addr) (int, error) {
 			return 0, io.ErrClosedPipe
 		},
 	}
-	c, err := NewClient(ClientOptions{
-		Connection: conn,
-	})
+	c, err := NewClient(
+		WithPacketConn(conn),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
+	c.HandleTransactions()
 	clientFinalizer(c)
 	clientFinalizer(c)
 	response := MustBuild(TransactionID, BindingSuccess)
 	response.Encode()
 	conn = &testConnection{
 		b: response.Raw,
-		write: func(bytes []byte) (int, error) {
+		writeTo: func(bytes []byte, addr net.Addr) (int, error) {
 			return len(bytes), nil
 		},
 	}
-	c, err = NewClient(ClientOptions{
-		Agent: errorAgent{
-			closeErr: io.ErrUnexpectedEOF,
-		},
-		Connection: conn,
-	})
+	c, err = NewClient(
+		WithAgent(errorAgent{closeErr: io.ErrUnexpectedEOF}),
+		WithPacketConn(conn),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
+	c.HandleTransactions()
 	clientFinalizer(c)
 	reader := bufio.NewScanner(buf)
 	var lines int
