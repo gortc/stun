@@ -14,7 +14,8 @@ Complies to [gortc principles](https://gortc.io/#principles) as core package.
 
 See [example](https://godoc.org/github.com/gortc/stun#example-Message) and [stun server](https://github.com/gortc/stund) for simple usage.
 Also see [gortc/turn](https://github.com/gortc/turn) for TURN [[RFC5766](https://tools.ietf.org/html/rfc5766)] implementation and
-[gortcd](https://github.com/gortc/gortcd) for TURN and STUN server.
+[gortcd](https://github.com/gortc/gortcd) for TURN and STUN server. This repo was merged to [pion/stun](https://github.com/pion/stun)
+at version `v1.19.0`.
 
 # Example
 You can get your current IP address from any STUN server by sending
