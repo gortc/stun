@@ -1,0 +1,18 @@
+# This is the official list of people who can contribute
+# (and typically have contributed) code to this repository.
+#
+# Names should be added to this file like so:
+#     Individual's name <submission email address>
+#     Individual's name <submission email address> <email2> <emailN>
+#
+# An entry with multiple email addresses specifies that the
+# first address should be used in the submit logs and
+# that the other addresses should be recognized as the
+# same person when interacting with Gerrit.
+
+# Please keep the list sorted.
+
+Aleksandr Razumov <ar@gortc.io>
+Michiel De Backker <mail@backkem.me>
+Moises Marangoni <moises.marangon@gmail.com>
+songjiayang <songjiayang@users.noreply.github.com>
