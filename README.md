@@ -1,11 +1,6 @@
-[![Build Status](https://travis-ci.com/gortc/stun.svg)](https://travis-ci.com/gortc/stun)
 [![Master status](https://tc.gortc.io/app/rest/builds/buildType:(id:stun_MasterStatus)/statusIcon.svg)](https://tc.gortc.io/project.html?projectId=stun&tab=projectOverview&guest=1)
-[![Build status](https://ci.appveyor.com/api/projects/status/fw3drn3k52mf5ghw/branch/master?svg=true)](https://ci.appveyor.com/project/ernado/stun-j08g0/branch/master)
 [![GoDoc](https://godoc.org/github.com/gortc/stun?status.svg)](http://godoc.org/github.com/gortc/stun)
 [![codecov](https://codecov.io/gh/gortc/stun/branch/master/graph/badge.svg)](https://codecov.io/gh/gortc/stun)
-[![Go Report](https://goreportcard.com/badge/github.com/gortc/stun?camo=retarded)](http://goreportcard.com/report/gortc/stun)
-[![stability-mature](https://img.shields.io/badge/stability-mature-008000.svg)](https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#mature)
-![GitHub tag](https://img.shields.io/github/tag/gortc/stun.svg)
 # STUN
 Package stun implements Session Traversal Utilities for NAT (STUN) [[RFC5389](https://tools.ietf.org/html/rfc5389)]
 protocol and [client](https://godoc.org/github.com/gortc/stun#Client) with no external dependencies and zero allocations in hot paths.
@@ -63,7 +58,8 @@ func main() {
 - [ ] [ALTERNATE-SERVER](https://tools.ietf.org/html/rfc5389#section-11) support [#48](https://github.com/gortc/stun/issues/48)
 - [ ] [RFC 5780](https://tools.ietf.org/html/rfc5780) — NAT Behavior Discovery Using STUN [#49](https://github.com/gortc/stun/issues/49)
 
-# Stability
+# Stability [![stability-mature](https://img.shields.io/badge/stability-mature-008000.svg)](https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#mature) ![GitHub tag](https://img.shields.io/github/tag/gortc/stun.svg)
+
 Package is currently stable, no backward incompatible changes are expected
 with exception of critical bugs or security fixes.
 
@@ -146,6 +142,9 @@ BenchmarkXORMappedAddress_GetFrom-12          50000000     37.40 ns/op          
 ok  	github.com/gortc/stun	76.868s
 ```
 
+## Build status
+[![Build Status](https://travis-ci.com/gortc/stun.svg)](https://travis-ci.com/gortc/stun)
+[![Build status](https://ci.appveyor.com/api/projects/status/fw3drn3k52mf5ghw/branch/master?svg=true)](https://ci.appveyor.com/project/ernado/stun-j08g0/branch/master)
 
 ## License
 BSD 3-Clause License
