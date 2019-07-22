@@ -1,9 +1,9 @@
 ARG CI_GO_VERSION
 FROM golang:${CI_GO_VERSION}
 
-ADD . /go/src/github.com/gortc/stun
+ADD . /go/src/gortc.io/stun
 
-WORKDIR /go/src/github.com/gortc/stun/e2e
+WORKDIR /go/src/gortc.io/stun/e2e
 
 RUN go install .
 

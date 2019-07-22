@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gortc/stun"
+	"gortc.io/stun"
 )
 
 func copyAddr(dst *stun.XORMappedAddress, src stun.XORMappedAddress) {

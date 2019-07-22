@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/gortc/stun"
+	"gortc.io/stun"
 )
 
 func main() {

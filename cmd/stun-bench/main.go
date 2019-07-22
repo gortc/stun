@@ -15,7 +15,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gortc/stun"
+	"gortc.io/stun"
 )
 
 var (

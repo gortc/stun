@@ -17,14 +17,13 @@ linters-settings:
   lll:
     line-length: 140
   goimports:
-    local-prefixes: github.com/gortc
+    local-prefixes: gortc.io
   gocritic:
     enabled-tags:
       - performance
       - style
       - experimental
     disabled-checks:
-      - evalOrder
       - commentedOutCode
       - sloppyReassign
 
