@@ -21,7 +21,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/gortc/stun"
+	"gortc.io/stun"
 )
 
 func main() {
