@@ -1,13 +1,13 @@
 [![Master status](https://tc.gortc.io/app/rest/builds/buildType:(id:stun_MasterStatus)/statusIcon.svg)](https://tc.gortc.io/project.html?projectId=stun&tab=projectOverview&guest=1)
-[![GoDoc](https://godoc.org/github.com/gortc/stun?status.svg)](http://godoc.org/github.com/gortc/stun)
+[![GoDoc](https://godoc.org/gortc.io/stun?status.svg)](http://godoc.org/gortc.io/stun)
 [![codecov](https://codecov.io/gh/gortc/stun/branch/master/graph/badge.svg)](https://codecov.io/gh/gortc/stun)
 # STUN
 Package stun implements Session Traversal Utilities for NAT (STUN) [[RFC5389](https://tools.ietf.org/html/rfc5389)]
-protocol and [client](https://godoc.org/github.com/gortc/stun#Client) with no external dependencies and zero allocations in hot paths.
-Client [supports](https://godoc.org/github.com/gortc/stun#WithRTO) automatic request retransmissions.
+protocol and [client](https://godoc.org/gortc.io/stun#Client) with no external dependencies and zero allocations in hot paths.
+Client [supports](https://godoc.org/gortc.io/stun#WithRTO) automatic request retransmissions.
 Complies to [gortc principles](https://gortc.io/#principles) as core package.
 
-See [example](https://godoc.org/github.com/gortc/stun#example-Message) and [stun server](https://github.com/gortc/stund) for simple usage.
+See [example](https://godoc.org/gortc.io/stun#example-Message) and [stun server](https://github.com/gortc/stund) for simple usage.
 Also see [gortc/turn](https://github.com/gortc/turn) for TURN [[RFC5766](https://tools.ietf.org/html/rfc5766)] implementation and
 [gortcd](https://github.com/gortc/gortcd) for TURN and STUN server. This repo was merged to [pion/stun](https://github.com/pion/stun)
 at version `v1.19.0`.
