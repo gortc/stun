@@ -44,6 +44,8 @@ func ParseURI(rawURI string) (URI, error) {
 	}
 	// Using URL methods to split host.
 	u.Host = u.Opaque
+	// TODO: validate host and port.
+	// See https://github.com/golang/go/issues/29098.
 	host, rawPort := u.Hostname(), u.Port()
 	uri := URI{
 		Scheme: u.Scheme,
