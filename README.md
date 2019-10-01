@@ -2,15 +2,19 @@
 [![GoDoc](https://godoc.org/gortc.io/stun?status.svg)](http://godoc.org/gortc.io/stun)
 [![codecov](https://codecov.io/gh/gortc/stun/branch/master/graph/badge.svg)](https://codecov.io/gh/gortc/stun)
 # STUN
-Package stun implements Session Traversal Utilities for NAT (STUN) [[RFC5389](https://tools.ietf.org/html/rfc5389)]
-protocol and [client](https://godoc.org/gortc.io/stun#Client) with no external dependencies and zero allocations in hot paths.
-Client [supports](https://godoc.org/gortc.io/stun#WithRTO) automatic request retransmissions.
-Complies to [gortc principles](https://gortc.io/#principles) as core package.
+Package stun implements Session Traversal Utilities for NAT (STUN)
+[[RFC5389](https://tools.ietf.org/html/rfc5389)] protocol with no
+external dependencies and zero allocations in hot paths.Complies to
+[gortc principles](https://gortc.io/#principles) as core package.
 
-See [example](https://godoc.org/gortc.io/stun#example-Message) and [stun server](https://github.com/gortc/stund) for simple usage.
-Also see [gortc/turn](https://github.com/gortc/turn) for TURN [[RFC5766](https://tools.ietf.org/html/rfc5766)] implementation and
-[gortcd](https://github.com/gortc/gortcd) for TURN and STUN server. This repo was merged to [pion/stun](https://github.com/pion/stun)
-at version `v1.19.0`.
+See [stun server](https://github.com/gortc/stund) for simple usage. Also see
+[gortc/turn](https://github.com/gortc/turn) for TURN
+[[RFC5766](https://tools.ietf.org/html/rfc5766)] implementation and
+[gortcd](https://github.com/gortc/gortcd) for TURN and STUN server. This
+repo was merged to [pion/stun](https://github.com/pion/stun) at version
+`v1.19.0`.
+
+Please use `v1` version for stun agent and client.
 
 # Example
 You can get your current IP address from any STUN server by sending
@@ -21,7 +25,7 @@ package main
 import (
 	"fmt"
 
-	"gortc.io/stun"
+	"gortc.io/stun/v2"
 )
 
 func main() {
@@ -52,16 +56,12 @@ func main() {
 ## Supported RFCs
 - [x] [RFC 5389](https://tools.ietf.org/html/rfc5389) — Session Traversal Utilities for NAT
 - [x] [RFC 5769](https://tools.ietf.org/html/rfc5769) — Test Vectors for STUN
-- [x] [RFC 6062](https://tools.ietf.org/html/rfc6062) — TURN extensions for TCP allocations
 - [x] [RFC 7064](https://tools.ietf.org/html/rfc7064) — STUN URI
-- [x] (TLS-over-)TCP client support
-- [ ] [ALTERNATE-SERVER](https://tools.ietf.org/html/rfc5389#section-11) support [#48](https://github.com/gortc/stun/issues/48)
-- [ ] [RFC 5780](https://tools.ietf.org/html/rfc5780) — NAT Behavior Discovery Using STUN [#49](https://github.com/gortc/stun/issues/49)
 
 # Stability [![stability-mature](https://img.shields.io/badge/stability-mature-008000.svg)](https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#mature) ![GitHub tag](https://img.shields.io/github/tag/gortc/stun.svg)
 
-Package is currently stable, no backward incompatible changes are expected
-with exception of critical bugs or security fixes.
+The v1 is currently stable, no backward incompatible changes are
+expected with exception of critical bugs or security fixes.
 
 Additional attributes are unlikely to be implemented in scope of stun package,
 the only exception is constants for attribute or message types.
@@ -71,7 +71,7 @@ RFC 5389 obsoletes RFC 3489, so implementation was ignored by purpose, however,
 RFC 3489 can be easily implemented as separate package.
 
 # Requirements
-Go 1.10 is currently supported and tested in CI. Should work on 1.9 and tip.
+Go 1.13 or better is required.
 
 # Testing
 Client behavior is tested and verified in many ways:

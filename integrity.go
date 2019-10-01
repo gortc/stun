@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"gortc.io/stun/internal/hmac"
+	"gortc.io/stun/v2/internal/hmac"
 )
 
 // separator for credentials.

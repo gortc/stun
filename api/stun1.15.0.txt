@@ -1,6 +1,0 @@
-pkg gortc.io/stun, const AttrRequestedAddressFamily = 23
-pkg gortc.io/stun, const AttrRequestedAddressFamily AttrType
-pkg gortc.io/stun, const CodeAddrFamilyNotSupported = 440
-pkg gortc.io/stun, const CodeAddrFamilyNotSupported ErrorCode
-pkg gortc.io/stun, const CodePeerAddrFamilyMismatch = 443
-pkg gortc.io/stun, const CodePeerAddrFamilyMismatch ErrorCode

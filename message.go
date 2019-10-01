@@ -397,10 +397,10 @@ type MessageClass byte
 
 // Possible values for message class in STUN Message Type.
 const (
-	ClassRequest         MessageClass = 0x00 // 0b00
-	ClassIndication      MessageClass = 0x01 // 0b01
-	ClassSuccessResponse MessageClass = 0x02 // 0b10
-	ClassErrorResponse   MessageClass = 0x03 // 0b11
+	ClassRequest         MessageClass = 0b00
+	ClassIndication      MessageClass = 0b01
+	ClassSuccessResponse MessageClass = 0b10
+	ClassErrorResponse   MessageClass = 0b11
 )
 
 // Common STUN message types.
@@ -494,18 +494,15 @@ func NewType(method Method, class MessageClass) MessageType {
 }
 
 const (
-	methodABits = 0xf   // 0b0000000000001111
-	methodBBits = 0x70  // 0b0000000001110000
-	methodDBits = 0xf80 // 0b0000111110000000
+	methodABits = 0b0000000000001111
+	methodBBits = 0b0000000001110000
+	methodDBits = 0b0000111110000000
 
 	methodBShift = 1
 	methodDShift = 2
 
-	firstBit  = 0x1
-	secondBit = 0x2
-
-	c0Bit = firstBit
-	c1Bit = secondBit
+	c0Bit = 0b01
+	c1Bit = 0b10
 
 	classC0Shift = 4
 	classC1Shift = 7

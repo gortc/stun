@@ -49,3 +49,5 @@ func (transactionIDSetter) AddTo(m *Message) error {
 
 // TransactionID is Setter for m.TransactionID.
 var TransactionID Setter = transactionIDSetter{}
+
+type transactionID [TransactionIDSize]byte

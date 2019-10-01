@@ -1,3 +1,0 @@
-pkg gortc.io/stun, const CodeRoleConflict = 487
-pkg gortc.io/stun, const CodeUnauthorized = 401
-pkg gortc.io/stun, const CodeUnauthorized ErrorCode
