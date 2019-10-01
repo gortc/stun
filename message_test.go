@@ -17,11 +17,8 @@ import (
 	"testing"
 )
 
-type attributeEncoder interface {
-	AddTo(m *Message) error
-}
-
-func addAttr(t testing.TB, m *Message, a attributeEncoder) {
+func addAttr(t testing.TB, m *Message, a Setter) {
+	t.Helper()
 	if err := a.AddTo(m); err != nil {
 		t.Error(err)
 	}
