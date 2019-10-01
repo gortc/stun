@@ -53,7 +53,7 @@ BenchmarkBuildOverhead/BuildNonPointer-6      4450084    251.00 ns/op           
 BenchmarkBuildOverhead/Raw-6                 12964191     93.90 ns/op                        0 B/op   0 allocs/op
 BenchmarkMessage_ForEach-6                   29016141     41.20 ns/op                        0 B/op   0 allocs/op
 BenchmarkMessageIntegrity_AddTo-6             1752014    620.00 ns/op      32.26 MB/s        0 B/op   0 allocs/op
-BenchmarkMessageIntegrity_Check-6             1730869    670.00 ns/op      47.75 MB/s       32 B/op   1 allocs/op
+BenchmarkMessageIntegrity_Check-6             1889426    621.00 ns/op      51.54 MB/s        0 B/op   0 allocs/op
 BenchmarkMessage_Write-6                     79968304     20.70 ns/op    1350.87 MB/s        0 B/op   0 allocs/op
 BenchmarkMessageType_Value-6               1000000000      0.45 ns/op                        0 B/op   0 allocs/op
 BenchmarkMessage_WriteTo-6                  184335535      7.99 ns/op                        0 B/op   0 allocs/op
