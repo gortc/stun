@@ -4,7 +4,7 @@
 # STUN
 Package stun implements Session Traversal Utilities for NAT (STUN)
 [[RFC5389](https://tools.ietf.org/html/rfc5389)] protocol with no
-external dependencies and zero allocations in hot paths.Complies to
+external dependencies and zero allocations in hot paths. Complies to
 [gortc principles](https://gortc.io/#principles) as core package.
 
 See [stun server](https://github.com/gortc/stund) for simple usage. Also see
@@ -14,7 +14,8 @@ See [stun server](https://github.com/gortc/stund) for simple usage. Also see
 repo was merged to [pion/stun](https://github.com/pion/stun) at version
 `v1.19.0`.
 
-Please use `v1` version for stun agent and client.
+Please use `v1` version for stun agent and client, currently the `v2`
+branch is under active development.
 
 ## Supported RFCs
 - [x] [RFC 5389](https://tools.ietf.org/html/rfc5389) — Session Traversal Utilities for NAT
