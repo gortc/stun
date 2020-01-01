@@ -1,6 +1,8 @@
 version: "{build}"
 
-platform: x64
+platform:
+  - x64
+  - x86
 
 branches:
   only:
@@ -12,11 +14,12 @@ clone_folder: c:\gortc\stun
 
 environment:
   GOPATH: c:\gopath
-  GOVERSION: 1.12
+  GOVERSION: 1.13
 
 install:
   - go version
   - go get -v -t .
 
 build_script:
+  - go vet ./...
   - go test -v .
