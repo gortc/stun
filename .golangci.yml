@@ -1,3 +1,4 @@
+# v1.22.2
 linters-settings:
   govet:
     check-shadowing: true
@@ -32,8 +33,7 @@ issues:
     - "`assertHMACSize` - `blocksize` always receives `64`"
   exclude-rules:
     - text: "string `<nil>`"
-      linters:
-        - goconst
+      linters: [goconst]
 
     # Exclude some linters from running on tests files.
     - path: _test\.go
@@ -43,23 +43,23 @@ issues:
         - dupl
         - gosec
         - goconst
+        - funlen
+        - gocognit
+        - gomnd
 
     # Ease some gocritic warnings on test files.
     - path: _test\.go
       text: "(unnamedResult|exitAfterDefer|unlambda)"
-      linters:
-        - gocritic
+      linters: [gocritic]
 
     # Exclude known linters from partially hard-vendored code,
     # which is impossible to exclude via "nolint" comments.
     - path: internal/hmac/
       text: "weak cryptographic primitive"
-      linters:
-        - gosec
+      linters: [gosec]
     - path: internal/hmac/
       text: "Write\\` is not checked"
-      linters:
-        - errcheck
+      linters: [errcheck]
 
     # Ease linting on benchmarking code.
     - path: cmd/stun-bench/
@@ -71,10 +71,12 @@ issues:
     - path: ^cmd/
       linters:
         - gocyclo
+        - gocognit
+        - gomnd
     - path: ^cmd/
       text: "(unnamedResult|exitAfterDefer)"
-      linters:
-        - gocritic
+      linters: [gocritic]
+
     - text: evalOrder
       path: helpers
       source: "Build"
@@ -85,6 +87,10 @@ linters:
     - prealloc
     - gochecknoglobals
     - scopelint
+    - funlen
+    - wsl
+    - godox
+    - gomnd
 
 run:
   skip-dirs:

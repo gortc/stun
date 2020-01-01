@@ -54,7 +54,7 @@ func safeXORBytes(dst, a, b []byte) int {
 
 // xorBytes xors the bytes in a and b. The destination is assumed to have enough
 // space. Returns the number of bytes xor'd.
-func xorBytes(dst, a, b []byte) int {
+func xorBytes(dst, a, b []byte) int { //nolint:unparam // code from std
 	if supportsUnaligned {
 		return fastXORBytes(dst, a, b)
 	}
