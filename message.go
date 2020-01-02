@@ -65,6 +65,18 @@ func Decode(data []byte, m *Message) error {
 //
 // 	Message, its fields, results of m.Get or any attribute a.GetFrom
 //	are valid only until Message.Raw is not modified.
+//
+// Usage:
+// 	var m Message
+// 	if err := m.Build(TransactionID, BindingRequest, Fingerprint); err != nil {
+// 		panic(err)
+// 	}
+// You can call Build on zero value, and m.Raw will contain on-the-wire
+// representation of Message. To decode message from byte slice, use Decode:
+// 	var m Message
+// 	if err := Decode(buf, &m); err != nil {
+// 		panic(err)
+// 	}
 type Message struct {
 	Type          MessageType
 	Length        uint32 // len(Raw) not including header
@@ -92,7 +104,7 @@ func (m *Message) NewTransactionID() error {
 	return err
 }
 
-func (m *Message) String() string {
+func (m Message) String() string {
 	tID := base64.StdEncoding.EncodeToString(m.TransactionID[:])
 	return fmt.Sprintf("%s l=%d attrs=%d id=%s", m.Type, m.Length, len(m.Attributes), tID)
 }

@@ -671,6 +671,20 @@ func TestMessage_Contains(t *testing.T) {
 	}
 }
 
+func TestMessage_Build(t *testing.T) {
+	var m Message
+	if err := m.Build(TransactionID, BindingRequest, Fingerprint); err != nil {
+		panic(err)
+	}
+	var p Message
+	if err := Decode(m.Raw, &p); err != nil {
+		panic(err)
+	}
+	if !m.Equal(&p) {
+		t.Fatal("Not equal")
+	}
+}
+
 func ExampleMessage() {
 	buf := new(bytes.Buffer)
 	m := new(Message)

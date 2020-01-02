@@ -47,5 +47,5 @@ func (transactionIDSetter) AddTo(m *Message) error {
 	return m.NewTransactionID()
 }
 
-// TransactionID is Setter for m.TransactionID.
+// TransactionID sets message transaction id to random value.
 var TransactionID Setter = transactionIDSetter{}
