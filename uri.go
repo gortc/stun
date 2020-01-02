@@ -44,8 +44,6 @@ func ParseURI(rawURI string) (URI, error) {
 	}
 	// Using URL methods to split host.
 	u.Host = u.Opaque
-	// TODO: validate host and port.
-	// See https://github.com/golang/go/issues/29098.
 	host, rawPort := u.Hostname(), u.Port()
 	uri := URI{
 		Scheme: u.Scheme,
@@ -53,8 +51,9 @@ func ParseURI(rawURI string) (URI, error) {
 	}
 	if len(rawPort) > 0 {
 		port, portErr := strconv.Atoi(rawPort)
-		if portErr != nil {
-			return uri, fmt.Errorf("failed to parse %q as port: %v", rawPort, portErr)
+		if portErr == nil {
+			// URL parser already verifies that port is integer.
+			uri.Port = port
 		}
 		uri.Port = port
 	}
