@@ -55,7 +55,6 @@ func ParseURI(rawURI string) (URI, error) {
 			// URL parser already verifies that port is integer.
 			uri.Port = port
 		}
-		uri.Port = port
 	}
 	return uri, nil
 }
