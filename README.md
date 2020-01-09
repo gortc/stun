@@ -1,4 +1,4 @@
-[![Master status](https://tc.gortc.io/app/rest/builds/buildType:(id:stun_MasterStatus)/statusIcon.svg)](https://tc.gortc.io/project.html?projectId=stun&tab=projectOverview&guest=1)
+[![Master status](https://img.shields.io/teamcity/build/s/stun_MasterStatus?server=https%3A%2F%2Ftc.gortc.io)](https://tc.gortc.io/project.html?projectId=stun&tab=projectOverview&guest=1)
 [![GoDoc](https://godoc.org/gortc.io/stun?status.svg)](http://godoc.org/gortc.io/stun)
 [![codecov](https://img.shields.io/codecov/c/github/gortc/stun?label=coverage)](https://codecov.io/gh/gortc/stun)
 # STUN
