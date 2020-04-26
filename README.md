@@ -71,7 +71,7 @@ RFC 5389 obsoletes RFC 3489, so implementation was ignored by purpose, however,
 RFC 3489 can be easily implemented as separate package.
 
 # Requirements
-Go 1.10 is currently supported and tested in CI. Should work on 1.9 and tip.
+Go 1.14 is currently supported and tested in CI. Should work on 1.13.
 
 # Testing
 Client behavior is tested and verified in many ways:

@@ -14,7 +14,7 @@ clone_folder: c:\gortc\stun
 
 environment:
   GOPATH: c:\gopath
-  GOVERSION: 1.13
+  GOVERSION: 1.14
 
 install:
   - go version
