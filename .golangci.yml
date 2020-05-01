@@ -81,6 +81,15 @@ issues:
       path: helpers
       source: "Build"
 
+    # RFC references
+    - linters: [godot]
+      source: "RFC \\d+"
+    - linters: [godot]
+      source: " #nosec"
+    # Code comments
+    - linters: [godot]
+      source: "\\/\\/\\s+}"
+
 linters:
   enable-all: true
   disable:
@@ -91,6 +100,8 @@ linters:
     - wsl
     - godox
     - gomnd
+    - goerr113
+    - testpackage
 
 run:
   skip-dirs:
