@@ -1,5 +1,5 @@
 [![Master status](https://img.shields.io/teamcity/build/s/stun_MasterStatus?server=https%3A%2F%2Ftc.gortc.io)](https://tc.gortc.io/project.html?projectId=stun&tab=projectOverview&guest=1)
-[![GoDoc](https://godoc.org/gortc.io/stun?status.svg)](http://godoc.org/gortc.io/stun)
+[![GoDev](https://img.shields.io/badge/go.dev-reference-007d9c)](https://pkg.go.dev/gortc.io/stun)
 [![codecov](https://img.shields.io/codecov/c/github/gortc/stun?label=coverage)](https://codecov.io/gh/gortc/stun)
 # STUN
 Package stun implements Session Traversal Utilities for NAT (STUN) [[RFC5389](https://tools.ietf.org/html/rfc5389)]
