@@ -18,7 +18,7 @@ go test -race -cpu=1,2,4 -run TestClient_DoConcurrent
 for d in $(go list ./... | grep -v vendor); do
     go test -race -coverprofile=profile.out -covermode=atomic "$d"
     if [[ -f profile.out ]]; then
-        cat profile.out >> coverage.txt
+        cat profile.out >> coverage.out
         rm profile.out
     fi
 done
