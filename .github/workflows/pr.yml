@@ -42,7 +42,7 @@ jobs:
         with:
           go-version: 1.15 # test only the latest go version to speed up CI
       - name: Run tests
-        run: make.exe test
+        run: go test ./...
         continue-on-error: true
   tests-on-macos:
     needs: golangci-lint # run after golangci-lint action to not produce duplicated errors
