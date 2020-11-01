@@ -13,9 +13,7 @@ import (
 	"gortc.io/stun"
 )
 
-var (
-	server = flag.String("server", fmt.Sprintf("gortc.io:3478"), "Stun server address")
-)
+var server = flag.String("server", "gortc.io:3478", "Stun server address")
 
 const (
 	udp           = "udp4"

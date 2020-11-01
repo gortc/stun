@@ -102,6 +102,7 @@ func BenchmarkMessageIntegrity_AddTo(b *testing.B) {
 		m.Reset()
 	}
 }
+
 func BenchmarkMessageIntegrity_Check(b *testing.B) {
 	m := new(Message)
 	// TODO: Find a way to make this test zero-alloc without excessive pre-alloc.

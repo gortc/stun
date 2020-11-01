@@ -442,11 +442,9 @@ func TestDial(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() {
-		if err = c.Close(); err != nil {
-			t.Error(err)
-		}
-	}()
+	if err = c.Close(); err != nil {
+		t.Error(err)
+	}
 }
 
 func TestDialError(t *testing.T) {
@@ -455,6 +453,7 @@ func TestDialError(t *testing.T) {
 		t.Fatal("error expected")
 	}
 }
+
 func TestClientCloseErr(t *testing.T) {
 	response := MustBuild(TransactionID, BindingSuccess)
 	response.Encode()
@@ -472,11 +471,9 @@ func TestClientCloseErr(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer func() {
-		if err, ok := c.Close().(CloseErr); !ok || err.AgentErr != io.ErrUnexpectedEOF {
-			t.Error("unexpected close err")
-		}
-	}()
+	if err, ok := c.Close().(CloseErr); !ok || err.AgentErr != io.ErrUnexpectedEOF {
+		t.Error("unexpected close err")
+	}
 }
 
 func TestWithNoConnClose(t *testing.T) {
@@ -618,13 +615,15 @@ func TestClientFinalizer(t *testing.T) {
 	}
 	clientFinalizer(c)
 	reader := bufio.NewScanner(buf)
-	var lines int
-	var expectedLines = []string{
-		"client: called finalizer on non-closed client: client not initialized",
-		"client: called finalizer on non-closed client",
-		"client: called finalizer on non-closed client: failed to close: " +
-			"<nil> (connection), unexpected EOF (agent)",
-	}
+	var (
+		lines         int
+		expectedLines = []string{
+			"client: called finalizer on non-closed client: client not initialized",
+			"client: called finalizer on non-closed client",
+			"client: called finalizer on non-closed client: failed to close: " +
+				"<nil> (connection), unexpected EOF (agent)",
+		}
+	)
 	for reader.Scan() {
 		if reader.Text() != expectedLines[lines] {
 			t.Error(reader.Text(), "!=", expectedLines[lines])
@@ -855,6 +854,7 @@ func TestClient_DoConcurrent(t *testing.T) {
 		1, 5, 10, 25, 100, 500,
 	} {
 		t.Run(fmt.Sprintf("%d", concurrency), func(t *testing.T) {
+			t.Parallel()
 			testClientDoConcurrent(t, concurrency)
 		})
 	}

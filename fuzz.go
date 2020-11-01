@@ -7,9 +7,7 @@ import (
 	"fmt"
 )
 
-var (
-	m = New()
-)
+var m = New()
 
 // FuzzMessage is go-fuzz endpoint for message.
 func FuzzMessage(data []byte) int {
@@ -96,7 +94,7 @@ func FuzzSetters(data []byte) int {
 		{new(MappedAddress), AttrMappedAddress},
 		{new(Realm), AttrRealm},
 	}
-	var firstByte = byte(0)
+	firstByte := byte(0)
 	if len(data) > 0 {
 		firstByte = data[0]
 	}

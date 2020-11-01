@@ -64,7 +64,7 @@ func BenchmarkMessage_Write(b *testing.B) {
 }
 
 func TestMessageType_Value(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		in  MessageType
 		out uint16
 	}{
@@ -82,7 +82,7 @@ func TestMessageType_Value(t *testing.T) {
 }
 
 func TestMessageType_ReadValue(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		in  uint16
 		out MessageType
 	}{
@@ -100,7 +100,7 @@ func TestMessageType_ReadValue(t *testing.T) {
 }
 
 func TestMessageType_ReadWriteValue(t *testing.T) {
-	var tests = []MessageType{
+	tests := []MessageType{
 		{Method: MethodBinding, Class: ClassRequest},
 		{Method: MethodBinding, Class: ClassSuccessResponse},
 		{Method: MethodBinding, Class: ClassErrorResponse},
@@ -197,8 +197,10 @@ func TestMessage_AttrLengthLessThanHeader(t *testing.T) {
 
 func TestMessage_AttrSizeLessThanLength(t *testing.T) {
 	mType := MessageType{Method: MethodBinding, Class: ClassRequest}
-	messageAttribute := RawAttribute{Length: 4,
-		Value: []byte{1, 2, 3, 4}, Type: 0x1,
+	messageAttribute := RawAttribute{
+		Length: 4,
+		Value:  []byte{1, 2, 3, 4},
+		Type:   0x1,
 	}
 	messageAttributes := Attributes{
 		messageAttribute,
@@ -497,7 +499,7 @@ func TestIsMessage(t *testing.T) {
 	NewSoftware("software").AddTo(m)
 	m.WriteHeader()
 
-	var tt = [...]struct {
+	tt := [...]struct {
 		in  []byte
 		out bool
 	}{
@@ -506,9 +508,11 @@ func TestIsMessage(t *testing.T) {
 		{[]byte{1, 2, 4}, false},                    // 2
 		{[]byte{1, 2, 4, 5, 6, 7, 8, 9, 20}, false}, // 3
 		{m.Raw, true},                               // 5
-		{[]byte{0, 0, 0, 0, 33, 18,
+		{[]byte{
+			0, 0, 0, 0, 33, 18,
 			164, 66, 0, 0, 0, 0, 0,
-			0, 0, 0, 0, 0, 0, 0, 0}, true}, // 6
+			0, 0, 0, 0, 0, 0, 0, 0,
+		}, true}, // 6
 	}
 	for i, v := range tt {
 		if got := IsMessage(v.in); got != v.out {

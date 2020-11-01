@@ -20,7 +20,7 @@ import (
 
 var (
 	workers    = flag.Int("w", runtime.GOMAXPROCS(0), "concurrent workers")
-	addr       = flag.String("addr", fmt.Sprintf("localhost"), "target address")
+	addr       = flag.String("addr", "localhost", "target address")
 	port       = flag.Int("port", stun.DefaultPort, "target port")
 	duration   = flag.Duration("d", time.Minute, "benchmark duration")
 	network    = flag.String("net", "udp", "protocol to use (udp, tcp)")

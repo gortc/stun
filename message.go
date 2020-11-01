@@ -416,7 +416,7 @@ const (
 var (
 	// Binding request message type.
 	BindingRequest = NewType(MethodBinding, ClassRequest)
-	// Binding success response message type
+	// Binding success response message type.
 	BindingSuccess = NewType(MethodBinding, ClassSuccessResponse)
 	// Binding error response message type.
 	BindingError = NewType(MethodBinding, ClassErrorResponse)

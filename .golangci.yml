@@ -90,6 +90,9 @@ issues:
     - linters: [godot]
       source: "\\/\\/\\s+}"
 
+    - linters: [gci]
+      source: "#nosec"
+
 linters:
   enable-all: true
   disable:
@@ -102,6 +105,10 @@ linters:
     - gomnd
     - goerr113
     - testpackage
+    - errorlint
+    - wrapcheck
+    - exhaustivestruct
+    - nlreturn
 
 run:
   skip-dirs:
