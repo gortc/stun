@@ -60,6 +60,9 @@ issues:
     - path: internal/hmac/
       text: "Write\\` is not checked"
       linters: [errcheck]
+    - path: internal/hmac/
+      source: justHash
+      linters: [godot]
 
     # Ease linting on benchmarking code.
     - path: cmd/stun-bench/
