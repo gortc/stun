@@ -54,3 +54,5 @@ check-api:
 	@cd api && bash ./check.sh
 test:
 	@./go.test.sh
+coverage:
+	@./go.coverage.sh

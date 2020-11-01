@@ -78,6 +78,27 @@ jobs:
             ${{ runner.os }}-go-${{ matrix.golang }}-
       - name: Run tests
         run: make test
+  coverage:
+    needs: golangci-lint # run after golangci-lint action to not produce duplicated errors
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        golang:
+          - 1.15
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.golang }}
+      - uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: coverage-${{ runner.os }}-go-${{ matrix.golang }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            coverage-${{ runner.os }}-go-${{ matrix.golang }}-
+      - name: Run tests with coverage
+        run: make coverage
       - name: Convert coverage.out to coverage.lcov
         uses: jandelgado/gcov2lcov-action@v1.0.6
       - name: Coveralls
