@@ -1,6 +1,6 @@
 ![CI](https://github.com/gortc/stun/workflows/CI/badge.svg)
 [![GoDev](https://img.shields.io/badge/go.dev-reference-007d9c)](https://pkg.go.dev/gortc.io/stun)
-[![codecov](https://img.shields.io/codecov/c/github/gortc/stun?label=coverage)](https://codecov.io/gh/gortc/stun)
+[![Coverage Status](https://coveralls.io/repos/github/gortc/stun/badge.svg)](https://coveralls.io/github/gortc/stun)
 # STUN
 Package stun implements Session Traversal Utilities for NAT (STUN) [[RFC5389](https://tools.ietf.org/html/rfc5389)]
 protocol and [client](https://godoc.org/gortc.io/stun#Client) with no external dependencies and zero allocations in hot paths.
