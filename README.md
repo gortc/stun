@@ -1,4 +1,4 @@
-[![Master status](https://img.shields.io/teamcity/build/s/stun_MasterStatus?server=https%3A%2F%2Ftc.gortc.io)](https://tc.gortc.io/project.html?projectId=stun&tab=projectOverview&guest=1)
+![CI](https://github.com/gortc/stun/workflows/CI/badge.svg)
 [![GoDev](https://img.shields.io/badge/go.dev-reference-007d9c)](https://pkg.go.dev/gortc.io/stun)
 [![codecov](https://img.shields.io/codecov/c/github/gortc/stun?label=coverage)](https://codecov.io/gh/gortc/stun)
 # STUN
@@ -141,10 +141,6 @@ BenchmarkXORMappedAddress_AddTo-12            20000000     56.70 ns/op          
 BenchmarkXORMappedAddress_GetFrom-12          50000000     37.40 ns/op                        0 B/op   0 allocs/op
 ok  	github.com/gortc/stun	76.868s
 ```
-
-## Build status
-[![Build Status](https://travis-ci.com/gortc/stun.svg)](https://travis-ci.com/gortc/stun)
-[![Build status](https://ci.appveyor.com/api/projects/status/fw3drn3k52mf5ghw/branch/master?svg=true)](https://ci.appveyor.com/project/ernado/stun-j08g0/branch/master)
 
 ## License
 BSD 3-Clause License
