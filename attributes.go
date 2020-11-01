@@ -89,6 +89,15 @@ const (
 	AttrOrigin AttrType = 0x802F
 )
 
+// Attributes from RFC 8489 STUN.
+const (
+	AttrMessageIntegritySHA256 AttrType = 0x001C // MESSAGE-INTEGRITY-SHA256
+	AttrPasswordAlgorithm      AttrType = 0x001D // PASSWORD-ALGORITHM
+	AttrUserhash               AttrType = 0x001E // USERHASH
+	AttrPasswordAlgorithms     AttrType = 0x8002 // PASSWORD-ALGORITHMS
+	AttrAlternateDomain        AttrType = 0x8003 // ALTERNATE-DOMAIN
+)
+
 // Value returns uint16 representation of attribute type.
 func (t AttrType) Value() uint16 {
 	return uint16(t)
@@ -121,7 +130,11 @@ var attrNames = map[AttrType]string{
 	AttrReservationToken:       "RESERVATION-TOKEN",
 	AttrConnectionID:           "CONNECTION-ID",
 	AttrRequestedAddressFamily: "REQUESTED-ADDRESS-FAMILY",
-	AttrOrigin:                 "ORIGIN",
+	AttrMessageIntegritySHA256: "MESSAGE-INTEGRITY-SHA256",
+	AttrPasswordAlgorithm:      "PASSWORD-ALGORITHM",
+	AttrUserhash:               "USERHASH",
+	AttrPasswordAlgorithms:     "PASSWORD-ALGORITHMS",
+	AttrAlternateDomain:        "ALTERNATE-DOMAIN",
 }
 
 func (t AttrType) String() string {
